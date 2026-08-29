@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+import os, re, sys, shutil, html
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+STYLE_SRC = SCRIPT_DIR / "style.css"
+
+PAGE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<link rel="stylesheet" href="{css_href}">
+</head>
+<body>
+{back_link}{content}
+</body>
+</html>
+"""
+
+def resolve_asset_path(src, rel_dir):
+    if re.match(r'^([a-zA-Z][a-zA-Z0-9+.-]*:|//|/)', src):
+        return src
+    if rel_dir == Path("."):
+        return "/" + src
+    return "/" + (rel_dir / src).as_posix()
+
+def convert_inline(text, rel_dir=Path(".")):
+    text = html.escape(text, quote=False)
+    codes = []
+    def stash_code(m):
+        codes.append(m.group(1))
+        return f"\x00{len(codes)-1}\x00"
+    text = re.sub(r'`([^`]+)`', stash_code, text)
+    def image_sub(m):
+        alt, src = m.group(1), resolve_asset_path(m.group(2), rel_dir)
+        return f'<img alt="{alt}" src="{src}">'
+    text = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', image_sub, text)
+    text = re.sub(r'\[([^\]]*)\]\(([^)]+)\)', r'<a href="\2">\1</a>', text)
+    text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+    text = re.sub(r'\*(.+?)\*', r'<em>\1</em>', text)
+    for i, code in enumerate(codes):
+        text = text.replace(f"\x00{i}\x00", f"<code>{code}</code>")
+    return text
+
+def md_to_html(text, rel_dir=Path(".")):
+    lines = text.split("\n")
+    out = []
+    i, n = 0, len(lines)
+    first_heading = None
+    while i < n:
+        line = lines[i]
+
+        if line.startswith("```"):
+            lang = line[3:].strip()
+            i += 1
+            code_lines = []
+            while i < n and not lines[i].startswith("```"):
+                code_lines.append(lines[i])
+                i += 1
+            i += 1
+            code = html.escape("\n".join(code_lines))
+            cls = f' class="language-{lang}"' if lang else ""
+            out.append(f"<pre><code{cls}>{code}</code></pre>")
+            continue
+
+        m = re.match(r'^(#{1,6})\s+(.*)', line)
+        if m:
+            level = len(m.group(1))
+            heading_text = m.group(2).strip()
+            if first_heading is None:
+                first_heading = heading_text
+            out.append(f"<h{level}>{convert_inline(heading_text, rel_dir)}</h{level}>")
+            i += 1
+            continue
+
+        if re.match(r'^[-*]\s+', line):
+            items = []
+            while i < n and re.match(r'^[-*]\s+', lines[i]):
+                items.append(convert_inline(re.sub(r'^[-*]\s+', '', lines[i]), rel_dir))
+                i += 1
+            out.append("<ul>" + "".join(f"<li>{it}</li>" for it in items) + "</ul>")
+            continue
+
+        if re.match(r'^\d+\.\s+', line):
+            items = []
+            while i < n and re.match(r'^\d+\.\s+', lines[i]):
+                items.append(convert_inline(re.sub(r'^\d+\.\s+', '', lines[i]), rel_dir))
+                i += 1
+            out.append("<ol>" + "".join(f"<li>{it}</li>" for it in items) + "</ol>")
+            continue
+
+        if line.strip() == "":
+            i += 1
+            continue
+
+        para_lines = []
+        while (i < n and lines[i].strip() != "" and not lines[i].startswith("```")
+               and not re.match(r'^(#{1,6})\s+', lines[i])
+               and not re.match(r'^[-*]\s+', lines[i])
+               and not re.match(r'^\d+\.\s+', lines[i])):
+            para_lines.append(lines[i])
+            i += 1
+        out.append(f"<p>{convert_inline(' '.join(para_lines), rel_dir)}</p>")
+
+    return "\n".join(out), first_heading
+
+def title_from_filename(name):
+    return name.replace("-", " ").replace("_", " ").title()
+
+def build_page(content_html, title, dest_dir, output_dir):
+    css_href = os.path.relpath(output_dir / "style.css", dest_dir)
+    back_link = ""
+    if dest_dir != output_dir:
+        back_link = '<p class="back"><a href="..">../ (back)</a></p>\n'
+    return PAGE.format(
+        title=html.escape(title),
+        css_href=Path(css_href).as_posix(),
+        back_link=back_link,
+        content=content_html,
+    )
+
+def convert_file(src, dest_dir, output_dir, rel_dir):
+    text = src.read_text(encoding="utf-8")
+    body_html, first_heading = md_to_html(text, rel_dir)
+    title = first_heading or title_from_filename(src.stem)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    page = build_page(body_html, title, dest_dir, output_dir)
+    (dest_dir / "index.html").write_text(page, encoding="utf-8")
+
+def build_listing(dir_path, dest_dir, output_dir, md_files):
+    items = []
+    for f in sorted(md_files, key=lambda p: p.name):
+        text = f.read_text(encoding="utf-8")
+        m = re.search(r'^#\s+(.*)', text, re.MULTILINE)
+        label = m.group(1).strip() if m else title_from_filename(f.stem)
+        items.append(f'<li><a href="{f.stem}/">{html.escape(label)}</a></li>')
+    listing_html = "<ul>" + "".join(items) + "</ul>"
+    title = title_from_filename(dir_path.name)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    page = build_page(listing_html, title, dest_dir, output_dir)
+    (dest_dir / "index.html").write_text(page, encoding="utf-8")
+
+def main():
+    content_dir = Path(sys.argv[1] if len(sys.argv) > 1 else "content")
+    output_dir = Path(sys.argv[2] if len(sys.argv) > 2 else "dist")
+
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True)
+    if STYLE_SRC.exists():
+        shutil.copy2(STYLE_SRC, output_dir / "style.css")
+    else:
+        print(f"warning: {STYLE_SRC} not found, skipping style.css", file=sys.stderr)
+
+    for root, dirs, files in os.walk(content_dir):
+        root_path = Path(root)
+        rel = root_path.relative_to(content_dir)
+        dest_root = output_dir / rel
+
+        md_files = [root_path / f for f in files if f.endswith(".md")]
+        other_files = [f for f in files if not f.endswith(".md")]
+
+        for f in other_files:
+            dest_file = dest_root / f
+            dest_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(root_path / f, dest_file)
+
+        for f in md_files:
+            if rel == Path(".") and f.stem == "index":
+                convert_file(f, output_dir, output_dir, rel)
+            else:
+                convert_file(f, dest_root / f.stem, output_dir, rel)
+
+        if rel != Path("."):
+            build_listing(root_path, dest_root, output_dir, md_files)
+
+if __name__ == "__main__":
+    main()
