@@ -5,6 +5,7 @@
     let phase = "idle";
     let rafId = null;
     let runStart = 0;
+    let holdTimer = null;
     let times = [];
     let idCounter = 1;
 
@@ -25,8 +26,9 @@
         phase = "idle";
         cancelAnimationFrame(rafId);
         clockEl.classList.remove("active");
+        clockEl.style.color = "";
         clockEl.textContent = "0:00.000";
-        hintEl.textContent = "space to start";
+        hintEl.textContent = "press and hold space to start";
     }
 
     function startRun() {
@@ -51,16 +53,42 @@
         clockEl.textContent = formatMs(elapsed);
         clockEl.classList.remove("active");
         addTime(elapsed);
-        hintEl.textContent = "space to start";
-        phase = "idle";
+        hintEl.textContent = "press and hold space to start";
+        phase = "stopped";
     }
 
     window.addEventListener("keydown", (e) => {
         if (e.code !== "Space") return;
         e.preventDefault();
         if (e.repeat) return;
-        if (phase === "running") stopRun();
-        else if (phase === "idle") startRun();
+        if (phase === "running") {
+            stopRun();
+        } else if (phase === "idle") {
+            phase = "holding";
+            clockEl.textContent = "0:00.000";
+            clockEl.style.color = "#e75a5a";
+            holdTimer = setTimeout(() => {
+                if (phase === "holding") {
+                    phase = "ready";
+                    clockEl.style.color = "#a2c8a5";
+                }
+            }, 550);
+        }
+    });
+
+    window.addEventListener("keyup", (e) => {
+        if (e.code !== "Space") return;
+        e.preventDefault();
+        if (phase === "holding") {
+            clearTimeout(holdTimer);
+            phase = "idle";
+            clockEl.style.color = "";
+        } else if (phase === "ready") {
+            clockEl.style.color = "";
+            startRun();
+        } else if (phase === "stopped") {
+            phase = "idle";
+        }
     });
 
     const STORAGE_KEY = "stopwatch-times";
