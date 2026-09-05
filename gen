@@ -129,15 +129,30 @@ def convert_file(src, dest_dir, output_dir, rel_dir):
     page = build_page(body_html, title, dest_dir, output_dir)
     (dest_dir / "index.html").write_text(page, encoding="utf-8")
 
-def build_listing(dir_path, dest_dir, output_dir, md_files):
+def build_listing(dir_path, dest_dir, output_dir, md_files, rel_dir, index_file=None):
     items = []
     for f in sorted(md_files, key=lambda p: p.name, reverse=True):
         text = f.read_text(encoding="utf-8")
         m = re.search(r'^#\s+(.*)', text, re.MULTILINE)
         label = m.group(1).strip() if m else title_from_filename(f.stem)
         items.append(f'<li><a href="{f.stem}/">{html.escape(label)}</a></li>')
-    title = title_from_filename(dir_path.name)
-    listing_html = f"<h1>{title}</h1><p><i>{len(items)} items</i></p>" + '<ul style="list-style: none;">' + "".join(items) + "</ul>"
+
+    index_html = ""
+    index_title = None
+    if index_file is not None:
+        index_text = index_file.read_text(encoding="utf-8")
+        index_html, index_title = md_to_html(index_text, rel_dir)
+
+    title = index_title or title_from_filename(dir_path.name)
+
+    parts = [f"<h1>{title}</h1>"]
+    if index_html:
+        parts.append(index_html)
+    if items:
+        parts.append(f"<p><i>{len(items)} items</i></p>")
+        parts.append('<ul style="list-style: none;">' + "".join(items) + "</ul>")
+
+    listing_html = "".join(parts)
     dest_dir.mkdir(parents=True, exist_ok=True)
     page = build_page(listing_html, title, dest_dir, output_dir)
     (dest_dir / "index.html").write_text(page, encoding="utf-8")
@@ -162,19 +177,29 @@ def main():
         md_files = [root_path / f for f in files if f.endswith(".md")]
         other_files = [f for f in files if not f.endswith(".md")]
 
-        for f in other_files:
-            dest_file = dest_root / f
-            dest_file.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(root_path / f, dest_file)
+        index_file = None
+        if rel != Path("."):
+            for f in md_files:
+                if f.stem == "index":
+                    index_file = f
+                    break
+
+        if rel != Path("."):
+            listing_md_files = [f for f in md_files if f != index_file]
+            build_listing(root_path, dest_root, output_dir, listing_md_files, rel, index_file)
 
         for f in md_files:
             if rel == Path(".") and f.stem == "index":
                 convert_file(f, output_dir, output_dir, rel)
+            elif f == index_file:
+                continue
             else:
                 convert_file(f, dest_root / f.stem, output_dir, rel)
 
-        if rel != Path("."):
-            build_listing(root_path, dest_root, output_dir, md_files)
+        for f in other_files:
+            dest_file = dest_root / f
+            dest_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(root_path / f, dest_file)
 
 if __name__ == "__main__":
     main()
