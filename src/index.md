@@ -6,6 +6,7 @@ Check out my [stuff](stuff/) and [favs](favs/)
 
 ## What am i up to?
 
+- [Speedcubing](/rubiks)
 - Using river & fedora
 - Learning electronics & low-level programming
 - Making a single file ssg for this [website](https://github.com/refoldingcrystal/refoldingcrystal.github.io)
