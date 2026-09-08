@@ -2,7 +2,7 @@
 
 Hello traveler!
 
-Check out my [stuff](stuff/) and [favs](favs/)
+Check out my [stuff](stuff/) and [favs](favs/) or just find something for you in the [sitemap](sitemap)
 
 ## What am i up to?
 

@@ -121,6 +121,33 @@ def build_page(content_html, title, dest_dir, output_dir):
         content=content_html,
     )
 
+def build_sitemap(output_dir):
+    pages = []
+    for root, dirs, files in os.walk(output_dir):
+        if "index.html" in files:
+            root_path = Path(root)
+            rel = root_path.relative_to(output_dir)
+            page_html = (root_path / "index.html").read_text(encoding="utf-8")
+            m = re.search(r'<title>(.*?)</title>', page_html, re.DOTALL)
+            title = html.unescape(m.group(1)) if m else title_from_filename(root_path.name)
+            href = ".." if rel == Path(".") else "../" + rel.as_posix() + "/"
+            depth = 0 if rel == Path(".") else len(rel.parts)
+            pages.append((depth, title, href))
+
+    pages.sort(key=lambda p: p[2])
+
+    items = "".join(
+        f'<li style="margin-left: {depth * 1.5}rem; list-style: none;">'
+        f'<a href="{href}">{html.escape(title)}</a></li>'
+        for depth, title, href in pages
+    )
+    content = f'<h1>Sitemap</h1>\n<ul style="list-style: none; padding-left: 0;">{items}</ul>'
+
+    dest_dir = output_dir / "sitemap"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    page = build_page(content, "Sitemap", dest_dir, output_dir)
+    (dest_dir / "index.html").write_text(page, encoding="utf-8")
+
 def convert_file(src, dest_dir, output_dir, rel_dir):
     text = src.read_text(encoding="utf-8")
     body_html, first_heading = md_to_html(text, rel_dir)
@@ -200,6 +227,8 @@ def main():
             dest_file = dest_root / f
             dest_file.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(root_path / f, dest_file)
+
+    build_sitemap(output_dir)
 
 if __name__ == "__main__":
     main()
