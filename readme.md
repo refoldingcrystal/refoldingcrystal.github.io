@@ -20,3 +20,11 @@ The script requires `lunamark` and `penlight`. Install it with:
 ```bash
 luarocks install lunamark penlight
 ```
+
+## Todo
+
+- [ ] proper sitemap
+- [ ] outline of current page on the margin
+- [ ] metadata in each post's .md file
+- [ ] better rss generator
+- [ ] file locking to speed up generation

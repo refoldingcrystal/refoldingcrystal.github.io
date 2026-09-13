@@ -19,6 +19,8 @@ local render_markdown = lunamark.reader.markdown.new(writer, {
     fenced_code_attributes = true
 })
 
+local SITE_URL = "https://lozinka.duckdns.org"
+
 local function html_escape(s)
     local map = { ["&"] = "&amp;", ["<"] = "&lt;", [">"] = "&gt;", ['"'] = "&quot;" }
     return (s:gsub("[&<>\"]", map))
@@ -47,6 +49,16 @@ local function relative_path(target, start)
     for _ = common, #s do table.insert(out, "..") end
     for j = common, #t do table.insert(out, t[j]) end
     return #out == 0 and "." or table.concat(out, "/")
+end
+
+local function file_url_path(content_dir, mdfile)
+    local rel = path.relpath(mdfile, content_dir)
+    local rel_dir = path.dirname(rel)
+    local stem = get_stem(mdfile)
+    if stem == "index" then
+        return (rel_dir == "" or rel_dir == ".") and "/" or ("/" .. rel_dir .. "/")
+    end
+    return "/" .. ((rel_dir ~= "" and rel_dir ~= ".") and (rel_dir .. "/") or "") .. stem .. "/"
 end
 
 local function get_title(filepath)
@@ -155,6 +167,53 @@ function Site.build_listing(dir_path, dest_dir, output_dir, md_files, index_file
     file.write(out_file, Site.build_page(table.concat(parts, "\n"), title, dest_dir, output_dir))
 end
 
+local RSS_ITEM_TEMPLATE = [==[
+    <item>
+        <title>%s</title>
+        <link>%s</link>
+        <guid>%s</guid>
+        <pubDate>%s</pubDate>
+        <description><![CDATA[%s]]></description>
+    </item>
+]==]
+
+local function rfc822_date(mtime)
+    return os.date("!%a, %d %b %Y %H:%M:%S GMT", mtime)
+end
+
+function Site.build_rss(content_dir, output_dir, site_url)
+    local stuff_dir = path.join(content_dir, "stuff")
+    if not path.isdir(stuff_dir) then return end
+
+    local md_files = {}
+    for _, f in ipairs(dir.getallfiles(stuff_dir) or {}) do
+        if f:match("%.md$") then table.insert(md_files, f) end
+    end
+    table.sort(md_files, function(a, b) return path.getmtime(a) > path.getmtime(b) end)
+
+    local items = {}
+    for _, f in ipairs(md_files) do
+        local url = site_url .. file_url_path(content_dir, f)
+        table.insert(items, string.format(RSS_ITEM_TEMPLATE,
+            html_escape(get_title(f)), url, url,
+            rfc822_date(path.getmtime(f)),
+            render_markdown(file.read(f) or "")))
+    end
+
+    local rss = string.format([[
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+    <channel>
+    <title>%s</title>
+    <link>%s</link>
+    <description>%s</description>
+    %s</channel>
+</rss>
+]], html_escape("lozinka"), site_url, html_escape("latest posts"), table.concat(items))
+
+    file.write(path.join(output_dir, "rss.xml"), rss)
+end
+
 function Site.build(content_dir, output_dir)
     dir.makepath(output_dir)
 
@@ -218,6 +277,7 @@ function Site.build(content_dir, output_dir)
     end
 
     process_dir(content_dir)
+    Site.build_rss(content_dir, output_dir, SITE_URL)
 end
 
 local function serve_request(client, output_dir)
@@ -242,7 +302,8 @@ local function serve_request(client, output_dir)
     else
         local body = "<h1>404 Not Found</h1>"
         client:send(string.format(
-        "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s", #body,
+            "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",
+            #body,
             body))
     end
 end
