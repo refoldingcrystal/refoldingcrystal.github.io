@@ -1,3 +1,3 @@
-I made a [stopwatch](timer) (please use desktop, not mobile). It saves your times in the browser, so you shouldn't worry about losing your progress, but there is still a way to import/export. 
+I made a [stopwatch](rubiks/timer) (please use desktop, not mobile). It saves your times in the browser, so you shouldn't worry about losing your progress, but there is still a way to import/export. 
 
 In the near future, I want to create my own cube and algorithm visualization library and probably create a cheatsheet for Roux.

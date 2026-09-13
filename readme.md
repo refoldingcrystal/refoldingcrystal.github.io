@@ -1,10 +1,22 @@
-# personal website
+# Personal website
+
+Static site generator written in lua, alongside all the content on my website
+
+## Usage
 
 ```bash
-./gen src docs
-python3 -m http.server -d out
+lua gen.lua [src_dir] [docs_dir] [options]
 ```
 
-## todo
+## Options
 
-- [ ] create a better way to manage static content and filepaths
+- `-w`, `--watch` - watches `src_dir` and rebuilds on change, while running a http server
+- `-p`, `--port PORT` - port for the server, default: `8000`
+
+## Requirements
+
+The script requires `lunamark` and `penlight`. Install it with:
+
+```bash
+luarocks install lunamark penlight
+```

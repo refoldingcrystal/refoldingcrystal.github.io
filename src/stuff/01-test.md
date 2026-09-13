@@ -8,7 +8,12 @@
 *Italic*, **Bold**, ***Both***, ~~Strikethrough~~, `Inline Code`, and [Link](https://example.com).
 
 * Unordered item
+* More items
+* And some more
+
 1. Ordered item
+2. More items
+3. And some more
 
 ```
 # comment
