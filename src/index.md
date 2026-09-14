@@ -15,5 +15,5 @@ Check out my [stuff](stuff/) and [favs](favs/) or just find something for you in
 - Contributing to [OpenStreatMaps](https://openstreetmap.org/)
 
 ![made with neovim](made-with-neovim.gif)
-![made with neovim](i-hate-microsoft.gif)
-![made with neovim](tested-on-firefox.gif)
+![i hate microsoft](i-hate-microsoft.gif)
+![tested on firefox](tested-on-firefox.gif)
