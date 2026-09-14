@@ -25,7 +25,6 @@ luarocks install lunamark penlight
 
 - [ ] proper sitemap
 - [ ] outline of current page on the margin
-- [ ] metadata in each post's .md file
 - [ ] better rss generator
 - [ ] file locking to speed up generation
 - [ ] remove jekyll from github actions

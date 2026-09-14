@@ -51,16 +51,6 @@ local function relative_path(target, start)
     return #out == 0 and "." or table.concat(out, "/")
 end
 
-local function file_url_path(content_dir, mdfile)
-    local rel = path.relpath(mdfile, content_dir)
-    local rel_dir = path.dirname(rel)
-    local stem = get_stem(mdfile)
-    if stem == "index" then
-        return (rel_dir == "" or rel_dir == ".") and "/" or ("/" .. rel_dir .. "/")
-    end
-    return "/" .. ((rel_dir ~= "" and rel_dir ~= ".") and (rel_dir .. "/") or "") .. stem .. "/"
-end
-
 local function strip_quotes(s)
     s = s:match("^%s*(.-)%s*$") or ""
     local q = s:match('^"(.*)"$') or s:match("^'(.*)'$")
@@ -243,6 +233,16 @@ local function rfc822_date(timestamp)
     return os.date("!%a, %d %b %Y %H:%M:%S GMT", timestamp)
 end
 
+local function post_url_path(stuff_dir, mdfile)
+    local rel = path.relpath(mdfile, stuff_dir)
+    local rel_dir = path.dirname(rel)
+    local stem = get_stem(mdfile)
+    if stem == "index" then
+        return (rel_dir == "" or rel_dir == ".") and "/stuff/" or ("/stuff/" .. rel_dir .. "/")
+    end
+    return "/stuff/" .. ((rel_dir ~= "" and rel_dir ~= ".") and (rel_dir .. "/") or "") .. stem .. "/"
+end
+
 function Site.build_rss(content_dir, output_dir, site_url)
     local stuff_dir = path.join(content_dir, "stuff")
     if not path.isdir(stuff_dir) then return end
@@ -261,11 +261,11 @@ function Site.build_rss(content_dir, output_dir, site_url)
     local items = {}
     for _, f in ipairs(md_files) do
         local doc = docs[f]
-        local url = site_url .. file_url_path(content_dir, f)
+        local url = site_url .. post_url_path(stuff_dir, f)
         table.insert(items, string.format(RSS_ITEM_TEMPLATE,
             html_escape(doc.title), url, url,
             rfc822_date(doc.date),
-            render_markdown(doc.body)))
+            render_markdown(string.format("Post from lozinka %q", html_escape(doc.title)))))
     end
 
     local rss = string.format([[
