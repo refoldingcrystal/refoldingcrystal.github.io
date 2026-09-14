@@ -1,6 +1,7 @@
-# Fedora as my new main
-
-*2026-08-30*
+---
+title: Fedora as my new main
+date: 2026-08-30
+---
 
 For nearly 4 years i used archlinux. I started using it when i didn't understand linux at all. But you learn the most from your own mistakes. Now i can say that i am an advanced linux user and the terminal feels like home, but constantly nursing my own OS is not my idea of fun.
 

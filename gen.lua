@@ -61,10 +61,63 @@ local function file_url_path(content_dir, mdfile)
     return "/" .. ((rel_dir ~= "" and rel_dir ~= ".") and (rel_dir .. "/") or "") .. stem .. "/"
 end
 
-local function get_title(filepath)
+local function strip_quotes(s)
+    s = s:match("^%s*(.-)%s*$") or ""
+    local q = s:match('^"(.*)"$') or s:match("^'(.*)'$")
+    return q or s
+end
+
+-- accepts YYYY-MM-DD or YYYY-MM-DD[T ]HH:MM:SS
+local function parse_date(s)
+    local y, mo, d, h, mi, se = s:match("^(%d%d%d%d)-(%d%d)-(%d%d)[T ]?(%d?%d?):?(%d?%d?):?(%d?%d?)")
+    if not y then return nil end
+    return os.time({
+        year = tonumber(y),
+        month = tonumber(mo),
+        day = tonumber(d),
+        hour = tonumber(h) or 0,
+        min = tonumber(mi) or 0,
+        sec = tonumber(se) or 0
+    })
+end
+
+local function parse_frontmatter(content)
+    if content:sub(1, 3) ~= "---" then
+        return {}, content
+    end
+
+    local fm_body, rest = content:match("^%-%-%-[ \t]*\r?\n(.-)\r?\n%-%-%-[ \t]*\r?\n?(.*)$")
+    if not fm_body then
+        return {}, content
+    end
+
+    local meta = {}
+    for line in (fm_body .. "\n"):gmatch("(.-)\r?\n") do
+        if line:match("%S") and not line:match("^%s*#") then
+            local key, value = line:match("^%s*([%w_]+)%s*:%s*(.-)%s*$")
+            if key then meta[key] = strip_quotes(value) end
+        end
+    end
+
+    return meta, rest
+end
+
+local function parse_document(filepath)
     local content = file.read(filepath) or ""
-    local title = content:match("^#%s+([^\r\n]+)") or content:match("\n#%s+([^\r\n]+)")
-    return title or format_title(get_stem(filepath))
+    local meta, body = parse_frontmatter(content)
+
+    local has_title = meta.title ~= nil and meta.title ~= ""
+    local title = has_title and meta.title or format_title(get_stem(filepath))
+
+    local parsed_date = meta.date and parse_date(meta.date)
+    local has_date = parsed_date ~= nil
+    local date = has_date and parsed_date or path.getmtime(filepath)
+
+    return { title = title, date = date, tags = meta.tags, body = body, has_title = has_title, has_date = has_date }
+end
+
+local function get_title(filepath)
+    return parse_document(filepath).title
 end
 
 -- when a markdown page is nested in a folder
@@ -126,14 +179,22 @@ end
 function Site.convert_file(src, dest_dir, output_dir, is_index)
     local out_file = path.join(dest_dir, "index.html")
     if not needs_rebuild(src, out_file) then return end
-    local body_html = render_markdown(file.read(src) or "")
+
+    local doc = parse_document(src)
+    local body_html = render_markdown(doc.body)
 
     -- correct only if not index.md
     if not is_index then body_html = fix_relative_links(body_html) end
 
-    local title = get_title(src)
+    if doc.has_title then
+        local date_html = doc.has_date and
+        string.format('<span class="post-date">%s</span>', os.date("!%Y-%m-%d", doc.date)) or ""
+        body_html = string.format('<div class="post-header"><h1>%s</h1>%s</div>\n%s',
+            html_escape(doc.title), date_html, body_html)
+    end
+
     dir.makepath(dest_dir)
-    file.write(out_file, Site.build_page(body_html, title, dest_dir, output_dir))
+    file.write(out_file, Site.build_page(body_html, doc.title, dest_dir, output_dir))
 end
 
 function Site.build_listing(dir_path, dest_dir, output_dir, md_files, index_file)
@@ -150,8 +211,9 @@ function Site.build_listing(dir_path, dest_dir, output_dir, md_files, index_file
 
     local index_html, index_title = "", nil
     if index_file ~= nil then
-        index_html = render_markdown(file.read(index_file) or "")
-        index_title = get_title(index_file)
+        local index_doc = parse_document(index_file)
+        index_html = render_markdown(index_doc.body)
+        index_title = index_doc.title
     end
 
     local title = index_title or format_title(path.basename(dir_path))
@@ -177,8 +239,8 @@ local RSS_ITEM_TEMPLATE = [==[
     </item>
 ]==]
 
-local function rfc822_date(mtime)
-    return os.date("!%a, %d %b %Y %H:%M:%S GMT", mtime)
+local function rfc822_date(timestamp)
+    return os.date("!%a, %d %b %Y %H:%M:%S GMT", timestamp)
 end
 
 function Site.build_rss(content_dir, output_dir, site_url)
@@ -189,15 +251,21 @@ function Site.build_rss(content_dir, output_dir, site_url)
     for _, f in ipairs(dir.getallfiles(stuff_dir) or {}) do
         if f:match("%.md$") then table.insert(md_files, f) end
     end
-    table.sort(md_files, function(a, b) return path.getmtime(a) > path.getmtime(b) end)
+
+    local docs = {}
+    for _, f in ipairs(md_files) do
+        docs[f] = parse_document(f)
+    end
+    table.sort(md_files, function(a, b) return docs[a].date > docs[b].date end)
 
     local items = {}
     for _, f in ipairs(md_files) do
+        local doc = docs[f]
         local url = site_url .. file_url_path(content_dir, f)
         table.insert(items, string.format(RSS_ITEM_TEMPLATE,
-            html_escape(get_title(f)), url, url,
-            rfc822_date(path.getmtime(f)),
-            render_markdown(file.read(f) or "")))
+            html_escape(doc.title), url, url,
+            rfc822_date(doc.date),
+            render_markdown(doc.body)))
     end
 
     local rss = string.format([[

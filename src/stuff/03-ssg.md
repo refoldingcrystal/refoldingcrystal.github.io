@@ -1,6 +1,7 @@
-# Writing a static site generator
-
-*2026-09-11*
+---
+title: Writing a static site generator
+date: 2026-09-11
+---
 
 I wanted a blog. So now I have one. Reaching for Hugo or Jekyll seemed like the obvious move, until I noticed the sheer overhead of setting either one up. They're great tools, but neither is as simple to use as the 250-line generator I wrote myself. Here's how I built it, and how it's working out so far.
 

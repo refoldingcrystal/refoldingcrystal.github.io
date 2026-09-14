@@ -5,70 +5,11 @@
     <link>https://lozinka.duckdns.org</link>
     <description>latest posts</description>
         <item>
-        <title>I have an RSS feed</title>
-        <link>https://lozinka.duckdns.org/src/stuff/04-rss/</link>
-        <guid>https://lozinka.duckdns.org/src/stuff/04-rss/</guid>
-        <pubDate>Sun, 13 Sep 2026 22:22:14 GMT</pubDate>
-        <description><![CDATA[<h1>I have an RSS feed</h1>
-
-<p><em>2026–09–14</em></p>
-
-<h2>What’s that?</h2>
-
-<p><a href="https://en.wikipedia.org/wiki/RSS">Rich Site Summary</a> is a small text file, usually named rss.xml or feed.xml, created to list a site’s recent posts in a standardized format (title, link, date, and content).</p>
-
-<p>It‘s not meant to be read directly by humans, but rather by a feed reader that periodically checks the file and shows you anything new. Lots of sites still publish one even though it’s an old format, so it doesn’t hurt to check if your favorite site has one.</p>
-
-<h2>Why</h2>
-
-<p>I wanted a way for people to follow along without having to remember to check the site or sign up for a newsletter. Any feed reader can poll the feed without needing accounts, tracking, or middleman platforms.</p>
-
-Limiting the feed to the <code>stuff/</code> directory is deliberate. I feel like that is the main focus of the site, while all the other pages are extra content or non-essential references rather than news.]]></description>
-    </item>
-    <item>
-        <title>Test file</title>
-        <link>https://lozinka.duckdns.org/src/stuff/01-test/</link>
-        <guid>https://lozinka.duckdns.org/src/stuff/01-test/</guid>
-        <pubDate>Sun, 13 Sep 2026 19:13:57 GMT</pubDate>
-        <description><![CDATA[<h1>Test file</h1>
-
-<p><em>2026–08–29</em></p>
-
-<h2>Heading 2</h2>
-
-<h3>Heading 3</h3>
-
-<p><em>Italic</em>, <strong>Bold</strong>, <strong><em>Both</em></strong>, ~~Strikethrough~~, <code>Inline Code</code>, and <a href="https://example.com">Link</a>.</p>
-
-<ul>
-<li>Unordered item</li>
-<li>More items</li>
-<li>And some more</li>
-</ul>
-
-<ol>
-<li>Ordered item</li>
-<li>More items</li>
-<li>And some more</li>
-</ol>
-
-<pre><code># comment
-def add(a, b):
-    return a + b
-</code></pre>
-
-<img src="markdown.webp" alt="Markdown"]]></description>
-    </item>
-    <item>
         <title>Writing a static site generator</title>
         <link>https://lozinka.duckdns.org/src/stuff/03-ssg/</link>
         <guid>https://lozinka.duckdns.org/src/stuff/03-ssg/</guid>
-        <pubDate>Thu, 10 Sep 2026 22:31:35 GMT</pubDate>
-        <description><![CDATA[<h1>Writing a static site generator</h1>
-
-<p><em>2026–09–11</em></p>
-
-<p>I wanted a blog. So now I have one. Reaching for Hugo or Jekyll seemed like the obvious move, until I noticed the sheer overhead of setting either one up. They‘re great tools, but neither is as simple to use as the 250-line generator I wrote myself. Here’s how I built it, and how it’s working out so far.</p>
+        <pubDate>Thu, 10 Sep 2026 22:00:00 GMT</pubDate>
+        <description><![CDATA[<p>I wanted a blog. So now I have one. Reaching for Hugo or Jekyll seemed like the obvious move, until I noticed the sheer overhead of setting either one up. They‘re great tools, but neither is as simple to use as the 250-line generator I wrote myself. Here’s how I built it, and how it’s working out so far.</p>
 
 <h2>Why not use an already-existing tool?</h2>
 
@@ -116,12 +57,8 @@ The generator does exactly what I need and nothing else, which was the whole poi
         <title>Fedora as my new main</title>
         <link>https://lozinka.duckdns.org/src/stuff/02-fedora/</link>
         <guid>https://lozinka.duckdns.org/src/stuff/02-fedora/</guid>
-        <pubDate>Sun, 30 Aug 2026 20:05:27 GMT</pubDate>
-        <description><![CDATA[<h1>Fedora as my new main</h1>
-
-<p><em>2026–08–30</em></p>
-
-<p>For nearly 4 years i used archlinux. I started using it when i didn’t understand linux at all. But you learn the most from your own mistakes. Now i can say that i am an advanced linux user and the terminal feels like home, but constantly nursing my own OS is not my idea of fun.</p>
+        <pubDate>Sat, 29 Aug 2026 22:00:00 GMT</pubDate>
+        <description><![CDATA[<p>For nearly 4 years i used archlinux. I started using it when i didn’t understand linux at all. But you learn the most from your own mistakes. Now i can say that i am an advanced linux user and the terminal feels like home, but constantly nursing my own OS is not my idea of fun.</p>
 
 <p>The shift happened subtly, when over time i stumbled upon more and more random issues with the kernel, graphics drivers or the network. Not to mention mismatched software lacking any mutual coherence. When life got busy I didn’t have time to debug my system and i even installed windows to get my system working (it turned out to be an immovable obstacle in my way of working, and i ended up with linux mint or ubuntu).</p>
 
@@ -130,6 +67,53 @@ The generator does exactly what I need and nothing else, which was the whole poi
 <p>Archlinux was the best teacher i had and i’m glad i stuck with him for so long. </p>
 
 <em>all’s well, that ends well</em> ~Belmondawg]]></description>
+    </item>
+    <item>
+        <title>Test file</title>
+        <link>https://lozinka.duckdns.org/src/stuff/01-test/</link>
+        <guid>https://lozinka.duckdns.org/src/stuff/01-test/</guid>
+        <pubDate>Fri, 28 Aug 2026 22:00:00 GMT</pubDate>
+        <description><![CDATA[<h2>Heading 2</h2>
+
+<h3>Heading 3</h3>
+
+<p><em>Italic</em>, <strong>Bold</strong>, <strong><em>Both</em></strong>, ~~Strikethrough~~, <code>Inline Code</code>, and <a href="https://example.com">Link</a>.</p>
+
+<ul>
+<li>Unordered item</li>
+<li>More items</li>
+<li>And some more</li>
+</ul>
+
+<ol>
+<li>Ordered item</li>
+<li>More items</li>
+<li>And some more</li>
+</ol>
+
+<pre><code># comment
+def add(a, b):
+    return a + b
+</code></pre>
+
+<img src="markdown.webp" alt="Markdown"]]></description>
+    </item>
+    <item>
+        <title>I have an RSS feed</title>
+        <link>https://lozinka.duckdns.org/src/stuff/04-rss/</link>
+        <guid>https://lozinka.duckdns.org/src/stuff/04-rss/</guid>
+        <pubDate>Mon, 13 Apr 2026 22:00:00 GMT</pubDate>
+        <description><![CDATA[<h2>What’s that?</h2>
+
+<p><a href="https://en.wikipedia.org/wiki/RSS">Rich Site Summary</a> is a small text file, usually named rss.xml or feed.xml, created to list a site’s recent posts in a standardized format (title, link, date, and content).</p>
+
+<p>It‘s not meant to be read directly by humans, but rather by a feed reader that periodically checks the file and shows you anything new. Lots of sites still publish one even though it’s an old format, so it doesn’t hurt to check if your favorite site has one.</p>
+
+<h2>Why</h2>
+
+<p>I wanted a way for people to follow along without having to remember to check the site or sign up for a newsletter. Any feed reader can poll the feed without needing accounts, tracking, or middleman platforms.</p>
+
+Limiting the feed to the <code>stuff/</code> directory is deliberate. I feel like that is the main focus of the site, while all the other pages are extra content or non-essential references rather than news.]]></description>
     </item>
 </channel>
 </rss>

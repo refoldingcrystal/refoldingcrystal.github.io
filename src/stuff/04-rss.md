@@ -1,6 +1,7 @@
-# I have an RSS feed
-
-*2026-09-14*
+---
+title: I have an RSS feed
+date: 2026-04-14
+---
 
 ## What's that?
 

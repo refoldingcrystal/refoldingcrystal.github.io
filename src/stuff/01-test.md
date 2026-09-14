@@ -1,6 +1,7 @@
-# Test file
-
-*2026-08-29*
+---
+title: Test file
+date: 2026-08-29
+---
 
 ## Heading 2
 ### Heading 3

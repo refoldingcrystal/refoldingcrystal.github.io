@@ -1,4 +1,6 @@
-# Software
+---
+title: Software
+---
 
 ## Things I use
 

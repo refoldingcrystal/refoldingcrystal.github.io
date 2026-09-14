@@ -1,4 +1,6 @@
-# YouTube 
+---
+title: YouTube 
+---
 
 Those videos were so cool to watch!
 
