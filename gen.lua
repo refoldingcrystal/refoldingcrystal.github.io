@@ -6,24 +6,154 @@ if not ok_pl then
     os.exit(1)
 end
 
-local ok_md, lunamark = pcall(require, "lunamark")
-if not ok_md then
-    io.stderr:write("error: script requires lunamark\n")
-    os.exit(1)
-end
-
-local writer = lunamark.writer.html.new()
-local render_markdown = lunamark.reader.markdown.new(writer, {
-    smart = true,
-    fenced_code_blocks = true,
-    fenced_code_attributes = true
-})
-
 local SITE_URL = "https://lozinka.duckdns.org"
 
 local function html_escape(s)
     local map = { ["&"] = "&amp;", ["<"] = "&lt;", [">"] = "&gt;", ['"'] = "&quot;" }
     return (s:gsub("[&<>\"]", map))
+end
+
+local function render_inline(text)
+    local stash = {}
+    local function hold(html)
+        stash[#stash + 1] = html
+        return "\1" .. #stash .. "\2"
+    end
+
+    text = text:gsub("(`+)(.-)%1", function(_, code)
+        return hold("<code>" .. html_escape(code:match("^%s*(.-)%s*$")) .. "</code>")
+    end)
+
+    text = text:gsub("\\(%p)", function(c) return hold(html_escape(c)) end)
+
+    -- images
+    text = text:gsub("!%[([^%]]-)%]%(([^%)]-)%)", function(alt, target)
+        local url = target:match("^%s*(%S+)") or ""
+        return hold(string.format('<img src="%s" alt="%s">', html_escape(url), html_escape(alt)))
+    end)
+
+    -- links
+    text = text:gsub("%[([^%]]-)%]%(([^%)]-)%)", function(label, target)
+        local url = target:match("^%s*(%S+)") or ""
+        return hold(string.format('<a href="%s">%s</a>', html_escape(url), render_inline(label)))
+    end)
+
+    text = html_escape(text)
+
+    text = text:gsub("%*%*%*(%S.-)%*%*%*", "<strong><em>%1</em></strong>")
+    text = text:gsub("%*%*(%S.-)%*%*", "<strong>%1</strong>")
+    text = text:gsub("%*(%S[^*]-)%*", "<em>%1</em>")
+    text = text:gsub("%f[%w_]__(%S.-)__%f[^%w_]", "<strong>%1</strong>")
+    text = text:gsub("%f[%w_]_(%S[^_]-)_%f[^%w_]", "<em>%1</em>")
+    text = text:gsub("~~(%S.-)~~", "<del>%1</del>")
+
+    text = text:gsub("\1(%d+)\2", function(n) return stash[tonumber(n)] end)
+    return text
+end
+
+local function is_hr(l)
+    return l:match("^%s*%-%-%-+%s*$") or l:match("^%s*%*%*%*+%s*$") or l:match("^%s*___+%s*$")
+end
+
+local function is_ul(l) return l:match("^%s*[%*%+%-]%s+(%S.*)$") end
+local function is_ol(l) return l:match("^%s*%d+[%.%)]%s+(%S.*)$") end
+
+local function is_block_start(l)
+    return l:match("^%s*```") or l:match("^#+%s") or is_ul(l) or is_ol(l)
+        or l:match("^>") or is_hr(l)
+end
+
+local render_markdown
+
+local function render_blocks(lines)
+    local out, n, i = {}, #lines, 1
+
+    while i <= n do
+        local l = lines[i]
+
+        if not l:match("%S") then
+            i = i + 1
+
+        elseif l:match("^%s*```") then
+            local lang = l:match("^%s*```%s*([%w_%-+#.]*)") or ""
+            local code = {}
+            i = i + 1
+            while i <= n and not lines[i]:match("^%s*```%s*$") do
+                code[#code + 1] = html_escape(lines[i])
+                i = i + 1
+            end
+            i = i + 1
+            local cls = lang ~= "" and (' class="language-' .. html_escape(lang) .. '"') or ""
+            out[#out + 1] = string.format("<pre><code%s>%s</code></pre>", cls, table.concat(code, "\n"))
+
+        elseif l:match("^#+%s") and #l:match("^(#+)") <= 6 then
+            local hashes, text = l:match("^(#+)%s+(.-)%s*$")
+            text = text:gsub("%s+#+$", "")
+            out[#out + 1] = string.format("<h%d>%s</h%d>", #hashes, render_inline(text), #hashes)
+            i = i + 1
+
+        elseif is_hr(l) then
+            out[#out + 1] = "<hr>"
+            i = i + 1
+
+        elseif l:match("^>") then
+            local quote = {}
+            while i <= n and lines[i]:match("^>") do
+                quote[#quote + 1] = lines[i]:match("^>%s?(.*)$")
+                i = i + 1
+            end
+            out[#out + 1] = "<blockquote>\n" .. render_markdown(table.concat(quote, "\n")) .. "\n</blockquote>"
+
+        elseif is_ul(l) or is_ol(l) then
+            local matcher = is_ul(l) and is_ul or is_ol
+            local tag = is_ul(l) and "ul" or "ol"
+            local items = {}
+
+            while i <= n do
+                local line = lines[i]
+                local item = matcher(line)
+                if item then
+                    items[#items + 1] = { item }
+                    i = i + 1
+                elseif not line:match("%S") then
+                    -- continue only if the next non blank line is another item
+                    local j = i
+                    while j <= n and not lines[j]:match("%S") do j = j + 1 end
+                    if j <= n and matcher(lines[j]) then i = j else break end
+                elseif line:match("^%s+") and not is_ul(line) and not is_ol(line) then
+                    local cur = items[#items]
+                    cur[#cur + 1] = line:match("^%s*(.-)%s*$") -- continuation
+                    i = i + 1
+                else
+                    break
+                end
+            end
+
+            local lis = {}
+            for _, item in ipairs(items) do
+                lis[#lis + 1] = "<li>" .. render_inline(table.concat(item, "\n")) .. "</li>"
+            end
+            out[#out + 1] = string.format("<%s>\n%s\n</%s>", tag, table.concat(lis, "\n"), tag)
+
+        else
+            -- paragraph
+            local para = {}
+            while i <= n and lines[i]:match("%S") and (#para == 0 or not is_block_start(lines[i])) do
+                para[#para + 1] = lines[i]:match("^%s*(.-)%s*$")
+                i = i + 1
+            end
+            out[#out + 1] = "<p>" .. render_inline(table.concat(para, "\n")) .. "</p>"
+        end
+    end
+
+    return table.concat(out, "\n")
+end
+
+render_markdown = function(src)
+    src = src:gsub("\r\n", "\n")
+    local lines = {}
+    for line in (src .. "\n"):gmatch("(.-)\n") do lines[#lines + 1] = line end
+    return render_blocks(lines)
 end
 
 local function format_title(name)

@@ -9,28 +9,28 @@
         <link>https://lozinka.duckdns.org/stuff/src/stuff/04-rss/</link>
         <guid>https://lozinka.duckdns.org/stuff/src/stuff/04-rss/</guid>
         <pubDate>Mon, 14 Sep 2026 18:51:02 GMT</pubDate>
-        <description><![CDATA[Post from lozinka “I have an RSS feed”]]></description>
+        <description><![CDATA[<p>Post from lozinka &quot;I have an RSS feed&quot;</p>]]></description>
     </item>
     <item>
         <title>Writing a static site generator</title>
         <link>https://lozinka.duckdns.org/stuff/src/stuff/03-ssg/</link>
         <guid>https://lozinka.duckdns.org/stuff/src/stuff/03-ssg/</guid>
         <pubDate>Thu, 10 Sep 2026 22:00:00 GMT</pubDate>
-        <description><![CDATA[Post from lozinka “Writing a static site generator”]]></description>
+        <description><![CDATA[<p>Post from lozinka &quot;Writing a static site generator&quot;</p>]]></description>
     </item>
     <item>
         <title>Fedora as my new main</title>
         <link>https://lozinka.duckdns.org/stuff/src/stuff/02-fedora/</link>
         <guid>https://lozinka.duckdns.org/stuff/src/stuff/02-fedora/</guid>
         <pubDate>Sat, 29 Aug 2026 22:00:00 GMT</pubDate>
-        <description><![CDATA[Post from lozinka “Fedora as my new main”]]></description>
+        <description><![CDATA[<p>Post from lozinka &quot;Fedora as my new main&quot;</p>]]></description>
     </item>
     <item>
         <title>Test file</title>
         <link>https://lozinka.duckdns.org/stuff/src/stuff/01-test/</link>
         <guid>https://lozinka.duckdns.org/stuff/src/stuff/01-test/</guid>
         <pubDate>Fri, 28 Aug 2026 22:00:00 GMT</pubDate>
-        <description><![CDATA[Post from lozinka “Test file”]]></description>
+        <description><![CDATA[<p>Post from lozinka &quot;Test file&quot;</p>]]></description>
     </item>
 </channel>
 </rss>
