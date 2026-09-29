@@ -187,18 +187,23 @@ local function strip_quotes(s)
     return q or s
 end
 
+-- days since epoch, no timezone
+local function utc_time(y, mo, d, h, mi, se)
+    if mo <= 2 then y = y - 1 end
+    local era = math.floor(y / 400)
+    local yoe = y - era * 400
+    local mp = (mo + 9) % 12
+    local doy = math.floor((153 * mp + 2) / 5) + d - 1
+    local doe = yoe * 365 + math.floor(yoe / 4) - math.floor(yoe / 100) + doy
+    return (era * 146097 + doe - 719468) * 86400 + h * 3600 + mi * 60 + se
+end
+
 -- accepts YYYY-MM-DD or YYYY-MM-DD[T ]HH:MM:SS
 local function parse_date(s)
     local y, mo, d, h, mi, se = s:match("^(%d%d%d%d)-(%d%d)-(%d%d)[T ]?(%d?%d?):?(%d?%d?):?(%d?%d?)")
     if not y then return nil end
-    return os.time({
-        year = tonumber(y),
-        month = tonumber(mo),
-        day = tonumber(d),
-        hour = tonumber(h) or 0,
-        min = tonumber(mi) or 0,
-        sec = tonumber(se) or 0
-    })
+    return utc_time(tonumber(y), tonumber(mo), tonumber(d),
+        tonumber(h) or 0, tonumber(mi) or 0, tonumber(se) or 0)
 end
 
 local function parse_frontmatter(content)
@@ -280,6 +285,7 @@ local PAGE_TEMPLATE = [[<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="alternate" type="application/rss+xml" title="lozinka" href="%s">
 <title>%s</title>
 <link rel="stylesheet" href="%s">
 </head>
@@ -293,7 +299,7 @@ function Site.build_page(content_html, title, dest_dir, output_dir)
     -- TODO: change path of style.css to src/
     local css_href = relative_path(path.join(output_dir, "style.css"), dest_dir)
     local back_link = dest_dir ~= output_dir and '<p class="back"><a href="..">../</a></p>\n' or ""
-    return string.format(PAGE_TEMPLATE, html_escape(title), css_href, back_link, content_html)
+    return string.format(PAGE_TEMPLATE, SITE_URL .. "/rss.xml", html_escape(title), css_href, back_link, content_html)
 end
 
 function Site.convert_file(src, dest_dir, output_dir, is_index)
@@ -353,7 +359,7 @@ local RSS_ITEM_TEMPLATE = [==[
     <item>
         <title>%s</title>
         <link>%s</link>
-        <guid>%s</guid>
+        <guid isPermaLink="true">%s</guid>
         <pubDate>%s</pubDate>
         <description><![CDATA[%s]]></description>
     </item>
@@ -363,51 +369,71 @@ local function rfc822_date(timestamp)
     return os.date("!%a, %d %b %Y %H:%M:%S GMT", timestamp)
 end
 
-local function post_url_path(stuff_dir, mdfile)
-    local rel = path.relpath(mdfile, stuff_dir)
-    local rel_dir = path.dirname(rel)
-    local stem = get_stem(mdfile)
-    if stem == "index" then
-        return (rel_dir == "" or rel_dir == ".") and "/stuff/" or ("/stuff/" .. rel_dir .. "/")
+local function post_paths(stuff_dir, mdfile)
+    local rel = relative_path(mdfile, stuff_dir)       -- "04-rss.md" or "sub/x.md"
+    local rel_dir = rel:match("^(.*)/[^/]*$")
+    local dir_path = "/stuff/" .. (rel_dir and (rel_dir .. "/") or "")
+    return dir_path, dir_path .. get_stem(mdfile) .. "/"
+end
+
+-- feed readers can't resolve relative links, so make them absolute
+local function absolutize_urls(html, site_url, dir_url, post_url)
+    local function fix(attr, url)
+        if url:match("^%a[%w%+%.%-]*:") or url:match("^//") then
+            -- already absolute
+        elseif url:match("^/") then
+            url = site_url .. url
+        elseif url:match("^#") then
+            url = post_url .. url
+        else
+            url = dir_url .. url
+        end
+        return string.format('%s="%s"', attr, url)
     end
-    return "/stuff/" .. ((rel_dir ~= "" and rel_dir ~= ".") and (rel_dir .. "/") or "") .. stem .. "/"
+    html = html:gsub('src="([^"]+)"', function(u) return fix("src", u) end)
+    html = html:gsub('href="([^"]+)"', function(u) return fix("href", u) end)
+    return html
 end
 
 function Site.build_rss(content_dir, output_dir, site_url)
     local stuff_dir = path.join(content_dir, "stuff")
     if not path.isdir(stuff_dir) then return end
 
-    local md_files = {}
+    -- only dated posts; folder intros (index.md) are not posts
+    local posts = {}
     for _, f in ipairs(dir.getallfiles(stuff_dir) or {}) do
-        if f:match("%.md$") then table.insert(md_files, f) end
+        if f:match("%.md$") and get_stem(f) ~= "index" then
+            local doc = parse_document(f)
+            if doc.has_date then posts[#posts + 1] = { file = f, doc = doc } end
+        end
     end
-
-    local docs = {}
-    for _, f in ipairs(md_files) do
-        docs[f] = parse_document(f)
-    end
-    table.sort(md_files, function(a, b) return docs[a].date > docs[b].date end)
+    table.sort(posts, function(a, b) return a.doc.date > b.doc.date end)
 
     local items = {}
-    for _, f in ipairs(md_files) do
-        local doc = docs[f]
-        local url = site_url .. post_url_path(stuff_dir, f)
+    for _, p in ipairs(posts) do
+        local dir_path, post_path = post_paths(stuff_dir, p.file)
+        local url = site_url .. post_path
+        local html = absolutize_urls(render_markdown(p.doc.body), site_url, site_url .. dir_path, url)
+        html = html:gsub("]]>", "]]]]><![CDATA[>")
         table.insert(items, string.format(RSS_ITEM_TEMPLATE,
-            html_escape(doc.title), url, url,
-            rfc822_date(doc.date),
-            render_markdown(string.format("Post from lozinka %q", html_escape(doc.title)))))
+            html_escape(p.doc.title), url, url, rfc822_date(p.doc.date), html))
     end
 
+    local last_build = posts[1] and posts[1].doc.date or os.time()
     local rss = string.format([[
 <?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
     <title>%s</title>
     <link>%s</link>
     <description>%s</description>
-    %s</channel>
+    <language>en</language>
+    <lastBuildDate>%s</lastBuildDate>
+    <atom:link href="%s/rss.xml" rel="self" type="application/rss+xml"/>
+%s    </channel>
 </rss>
-]], html_escape("lozinka"), site_url, html_escape("latest posts"), table.concat(items))
+]], html_escape("lozinka"), site_url, html_escape("latest posts"),
+        rfc822_date(last_build), site_url, table.concat(items))
 
     file.write(path.join(output_dir, "rss.xml"), rss)
 end
