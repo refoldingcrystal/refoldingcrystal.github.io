@@ -14,6 +14,7 @@ Check out my [stuff](stuff/) and [favs](favs/) or just find something for you in
 - Learning linguistics & philosophy
 - Contributing to [OpenStreatMaps](https://openstreetmap.org/)
 
+![lozinka](button.png)
 ![made with neovim](made-with-neovim.gif)
 ![i hate microsoft](i-hate-microsoft.gif)
 ![tested on firefox](tested-on-firefox.gif)
